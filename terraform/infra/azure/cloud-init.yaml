@@ -1,0 +1,75 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - apt-transport-https
+  - gnupg
+  - lsb-release
+
+users:
+  - name: devops
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    shell: /bin/bash
+
+write_files:
+  - path: /home/devops/kind-config.yaml
+    owner: devops:devops
+    permissions: '0644'
+    content: |
+      kind: Cluster
+      apiVersion: kind.x-k8s.io/v1alpha4
+      nodes:
+        - role: control-plane
+
+runcmd:
+  - |
+    for i in $(seq 1 ${KIND_WORKER_COUNT}); do
+      echo "  - role: worker" >> /home/devops/kind-config.yaml
+    done
+  # -------------------------
+  # Install Docker
+  # -------------------------
+  - curl -fsSL https://get.docker.com | sh
+  - usermod -aG docker devops
+  - systemctl enable docker
+  - systemctl start docker
+
+  # -------------------------
+  # Install kubectl
+  # -------------------------
+  - curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+  - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+  # -------------------------
+  # Install kind
+  # -------------------------
+  - curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+  - chmod +x /usr/local/bin/kind
+
+  # -------------------------
+  # Install Helm
+  # -------------------------
+  # - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+  # -------------------------
+  # Create kind cluster
+  # -------------------------
+  - |
+    su - devops -c "
+    kind create cluster --name platform-cluster
+    "
+
+  # -------------------------
+  # Install Argo CD
+  # -------------------------
+  # - |
+  #   su - devops -c "
+  #   kubectl create namespace argocd || true
+  #   kubectl apply -n argocd \
+  #     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  #   "
+
+final_message: "Cloud-init bootstrap completed successfully"

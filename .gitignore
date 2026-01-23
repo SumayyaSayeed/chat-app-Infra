@@ -1,0 +1,77 @@
+############################
+# Terraform
+############################
+
+# Local Terraform directories
+**/.terraform/*
+.terraform/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Terraform variable files (often contain secrets)
+*.tfvars
+*.tfvars.json
+
+# Terraform override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plan files
+*.tfplan
+
+############################
+# Terraform lock file
+# (OPTIONAL: keep if you want reproducible providers)
+############################
+.terraform.lock.hcl
+
+############################
+# Kubernetes / kubeconfig
+############################
+
+# Local kubeconfigs (CRITICAL)
+kubeconfig*
+*.kubeconfig
+.kube/
+
+############################
+# Cloud-init artifacts
+############################
+
+# Rendered or temp cloud-init files
+cloud-init-rendered.yaml
+user-data.yaml
+
+############################
+# Secrets & credentials
+############################
+
+# SSH keys
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+
+# Cloud credentials
+.env
+.env.*
+*.secret
+*.secrets
+
+############################
+# Logs & temp files
+############################
+
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
