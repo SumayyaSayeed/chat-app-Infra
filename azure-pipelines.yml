@@ -10,17 +10,53 @@ trigger:
 pool:
   name:  'Self-Hosted'
 
-steps:
+variables:
+  TF_VERSION: '1.6.6'
+  TF_WORKING_DIR: 'terraform/infra/azure'
 
+stages:
+- stage: Terraform
+  jobs:
+  - job: DeployInfra
+    steps:
 
-- script: |
-    terraform init
-    terraform validate
-  displayName: 'Terraform Init and Validate'
+    # 1️⃣ Checkout code
+    - checkout: self
 
-- script: terraform plan -out=tfplan
-  displayName: 'Terraform Plan'
+    # 2️⃣ Install Terraform
+    - task: TerraformInstaller@1
+      displayName: Install Terraform
+      inputs:
+        terraformVersion: $(TF_VERSION)
 
-- script: terraform apply -input=false tfplan
-  displayName: 'Terraform Apply'
-  condition: succeeded()
+    # 3️⃣ Terraform Init
+    - task: TerraformTaskV4@4
+      displayName: Terraform Init
+      inputs:
+        provider: azurerm
+        command: init
+        workingDirectory: $(TF_WORKING_DIR)
+        backendServiceArm: azure-rm-terraform
+        backendAzureRmResourceGroupName: tfstate-rg
+        backendAzureRmStorageAccountName: tfstatestorage123
+        backendAzureRmContainerName: tfstate
+        backendAzureRmKey: infra.tfstate
+
+    # 4️⃣ Terraform Plan
+    - task: TerraformTaskV4@4
+      displayName: Terraform Plan
+      inputs:
+        provider: azurerm
+        command: plan
+        workingDirectory: $(TF_WORKING_DIR)
+        environmentServiceNameAzureRM: azure-rm-terraform
+
+    # 5️⃣ Terraform Apply
+    - task: TerraformTaskV4@4
+      displayName: Terraform Apply
+      inputs:
+        provider: azurerm
+        command: apply
+        workingDirectory: $(TF_WORKING_DIR)
+        environmentServiceNameAzureRM: azure-rm-terraform
+        commandOptions: '-auto-approve'
