@@ -29,28 +29,19 @@ stages:
       inputs:
         terraformVersion: $(TF_VERSION)
 
-    # 3️⃣ Terraform Init
-    - task: TerraformTaskV4@4
-      displayName: Terraform Init
+# 2️⃣ Authenticate to Azure (OIDC / SP) 
+    - task: AzureCLI@2
+      displayName: Terraform Init / Plan / Apply
       inputs:
-        provider: azurerm
-        command: init
-        workingDirectory: $(TF_WORKING_DIR)
+        azureSubscription: ado-terraform-oidc  # service connection ONLY here
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+         set -e
+          cd $(TF_WORKING_DIR)
 
-    # 4️⃣ Terraform Plan
-    - task: TerraformTaskV4@4
-      displayName: Terraform Plan
-      inputs:
-        provider: azurerm
-        command: plan
-        workingDirectory: $(TF_WORKING_DIR)
+         terraform --version
 
-
-    # 5️⃣ Terraform Apply
-    - task: TerraformTaskV4@4
-      displayName: Terraform Apply
-      inputs:
-        provider: azurerm
-        command: apply
-        workingDirectory: $(TF_WORKING_DIR)
-        commandOptions: '-auto-approve'
+         terraform init
+         terraform plan
+         terraform apply -auto-approve
