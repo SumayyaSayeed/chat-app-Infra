@@ -36,11 +36,6 @@ stages:
         provider: azurerm
         command: init
         workingDirectory: $(TF_WORKING_DIR)
-        backendServiceArm: azure-rm-terraform
-        backendAzureRmResourceGroupName: tfstate-rg
-        backendAzureRmStorageAccountName: tfstatestorage123
-        backendAzureRmContainerName: tfstate
-        backendAzureRmKey: infra.tfstate
 
     # 4️⃣ Terraform Plan
     - task: TerraformTaskV4@4
@@ -49,7 +44,7 @@ stages:
         provider: azurerm
         command: plan
         workingDirectory: $(TF_WORKING_DIR)
-        environmentServiceNameAzureRM: azure-rm-terraform
+
 
     # 5️⃣ Terraform Apply
     - task: TerraformTaskV4@4
@@ -58,5 +53,4 @@ stages:
         provider: azurerm
         command: apply
         workingDirectory: $(TF_WORKING_DIR)
-        environmentServiceNameAzureRM: azure-rm-terraform
         commandOptions: '-auto-approve'
