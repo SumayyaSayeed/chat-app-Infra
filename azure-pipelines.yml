@@ -39,48 +39,54 @@ stages:
                   curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
                   az version
                 fi
-          # Terraform Init
-          - task: TerraformCLI@0
-            displayName: Terraform Init
+          - task: TerraformTask@5
             inputs:
-              command: init
-              workingDirectory: infra
-            env:
-              ARM_USE_OIDC: $(ARM_USE_OIDC)
-              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-              ARM_TENANT_ID: $(ARM_TENANT_ID)
-              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: 'ado-terraform-oidc'
+          
+          # Terraform Init
+          # - task: TerraformCLI@0
+          #   displayName: Terraform Init
+          #   inputs:
+          #     command: init
+          #     workingDirectory: infra
+          #   env:
+          #     ARM_USE_OIDC: $(ARM_USE_OIDC)
+          #     ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+          #     ARM_TENANT_ID: $(ARM_TENANT_ID)
+          #     ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
 
           # Terraform Validate
-          - task: TerraformCLI@0
-            displayName: Terraform Validate
-            inputs:
-              command: validate
-              workingDirectory: ${TF_WORKING_DIR}
+          # - task: TerraformCLI@0
+          #   displayName: Terraform Validate
+          #   inputs:
+          #     command: validate
+          #     workingDirectory: ${TF_WORKING_DIR}
 
-          # Terraform Plan
-          - task: TerraformCLI@0
-            displayName: Terraform Plan
-            inputs:
-              command: plan
-              workingDirectory: ${TF_WORKING_DIR}
-              environmentServiceName: ""   # must be empty for OIDC
-            env:
-              ARM_USE_OIDC: $(ARM_USE_OIDC)
-              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-              ARM_TENANT_ID: $(ARM_TENANT_ID)
-              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+          # # Terraform Plan
+          # - task: TerraformCLI@0
+          #   displayName: Terraform Plan
+          #   inputs:
+          #     command: plan
+          #     workingDirectory: ${TF_WORKING_DIR}
+          #     environmentServiceName: ""   # must be empty for OIDC
+          #   env:
+          #     ARM_USE_OIDC: $(ARM_USE_OIDC)
+          #     ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+          #     ARM_TENANT_ID: $(ARM_TENANT_ID)
+          #     ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
 
-          # Terraform Apply (main branch only)
-          - task: TerraformCLI@0
-            displayName: Terraform Apply
-            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-            inputs:
-              command: apply
-              workingDirectory: infra
-              args: "-auto-approve"
-            env:
-              ARM_USE_OIDC: $(ARM_USE_OIDC)
-              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-              ARM_TENANT_ID: $(ARM_TENANT_ID)
-              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+          # # Terraform Apply (main branch only)
+          # - task: TerraformCLI@0
+          #   displayName: Terraform Apply
+          #   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+          #   inputs:
+          #     command: apply
+          #     workingDirectory: infra
+          #     args: "-auto-approve"
+          #   env:
+          #     ARM_USE_OIDC: $(ARM_USE_OIDC)
+          #     ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+          #     ARM_TENANT_ID: $(ARM_TENANT_ID)
+          #     ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
