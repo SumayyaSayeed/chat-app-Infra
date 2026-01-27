@@ -1,65 +1,86 @@
 
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
 
 trigger:
-- xx
-
+  - develop
 pool:
-  name:  'Self-Hosted'
+  name: "Self-Hosted"
 
 variables:
-  TF_VERSION: '1.6.6'
-  TF_WORKING_DIR: 'terraform/infra/azure'
+  TF_VERSION: "1.6.6"
+  TF_WORKING_DIR: "terraform/infra/azure"
 
 stages:
-- stage: Terraform
-  jobs:
-  - job: DeployInfra
-    steps:
+  - stage: Terraform
+    jobs:
+      - job: DeployInfra
+        steps:
+          # 1️⃣ Checkout code
+          - checkout: self
 
-    # 1️⃣ Checkout code
-    - checkout: self
+          # 2️⃣ Install Terraform
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(TF_VERSION)
 
-    # 2️⃣ Install Terraform
-    - task: TerraformInstaller@1
-      displayName: Install Terraform
-      inputs:
-        terraformVersion: $(TF_VERSION)
-    
-    # 2️⃣ Install Azure CLI if not present
-    - task: Bash@3
-      displayName: Install Azure CLI if missing
-      inputs:
-        targetType: inline
-        script: |
-          set -e
+          # 2️⃣ Install Azure CLI if not present
+          - task: Bash@3
+            displayName: Install Azure CLI if missing
+            inputs:
+              targetType: inline
+              script: |
+                set -e
 
-          if command -v az >/dev/null 2>&1; then
-            echo "Azure CLI already installed:"
-            az version
-          else
-            echo "Azure CLI not found. Installing..."
-            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-            az version
-          fi
+                if command -v az >/dev/null 2>&1; then
+                  echo "Azure CLI already installed:"
+                  az version
+                else
+                  echo "Azure CLI not found. Installing..."
+                  curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+                  az version
+                fi
+          # Terraform Init
+          - task: TerraformCLI@0
+            displayName: Terraform Init
+            inputs:
+              command: init
+              workingDirectory: infra
+            env:
+              ARM_USE_OIDC: $(ARM_USE_OIDC)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
 
+          # Terraform Validate
+          - task: TerraformCLI@0
+            displayName: Terraform Validate
+            inputs:
+              command: validate
+              workingDirectory: ${TF_WORKING_DIR}
 
-# 2️⃣ Authenticate to Azure (OIDC / SP) 
-    - task: AzureCLI@2
-      displayName: Terraform Init / Plan / Apply
-      inputs:
-        azureSubscription: ado-terraform-oidc  # service connection ONLY here
-        scriptType: bash
-        scriptLocation: inlineScript
-        inlineScript: |
-         set -e
-          cd $(TF_WORKING_DIR)
+          # Terraform Plan
+          - task: TerraformCLI@0
+            displayName: Terraform Plan
+            inputs:
+              command: plan
+              workingDirectory: ${TF_WORKING_DIR}
+              environmentServiceName: ""   # must be empty for OIDC
+            env:
+              ARM_USE_OIDC: $(ARM_USE_OIDC)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
 
-         terraform --version
-
-         terraform init
-         terraform plan
-         terraform apply -auto-approve
+          # Terraform Apply (main branch only)
+          - task: TerraformCLI@0
+            displayName: Terraform Apply
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+            inputs:
+              command: apply
+              workingDirectory: infra
+              args: "-auto-approve"
+            env:
+              ARM_USE_OIDC: $(ARM_USE_OIDC)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)

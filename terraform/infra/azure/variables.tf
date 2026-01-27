@@ -31,7 +31,7 @@ variable "admin_username" {
 variable "ssh_public_key" {
   description = "SSH public key for VM access"
   type        = string
-  default = "D:/learnings/terraform/terraformInOneShotTWS/TerraformModulesApp/terra-key.pub"
+  default = "terra-key.pub"
 }
 
 variable "tags" {
@@ -43,8 +43,4 @@ variable "tags" {
     created_by  = "terraform"
   }
 }
-variable "kind_worker_count" {
-  description = "Number of kind worker nodes"
-  type        = number
-  default     = 2
-}
+

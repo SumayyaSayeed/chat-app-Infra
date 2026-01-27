@@ -44,10 +44,6 @@ module "vm" {
       destination_address_prefix = "*"
     }
   ]
-  custom_data = base64encode(
-  templatefile("cloud-init.yaml", {
-    KIND_WORKER_COUNT = var.kind_worker_count
-  })
-)
+  custom_data = file("cloud-init.yaml")
   tags        = var.tags
   }

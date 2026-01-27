@@ -1,7 +1,6 @@
 #cloud-config
 package_update: true
 package_upgrade: true
-
 packages:
   - ca-certificates
   - curl
@@ -10,66 +9,62 @@ packages:
   - lsb-release
 
 users:
+  - default
   - name: devops
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     shell: /bin/bash
+    groups: sudo
 
-write_files:
-  - path: /home/devops/kind-config.yaml
-    owner: devops:devops
-    permissions: '0644'
-    content: |
+
+runcmd:
+  - |
+      set -e
+      mkdir -p /home/devops
+
+      cat <<'EOF' > /home/devops/kind-config.yaml
       kind: Cluster
       apiVersion: kind.x-k8s.io/v1alpha4
       nodes:
         - role: control-plane
+        - role: worker
+        - role: worker
+      EOF
 
-runcmd:
-  - |
-    for i in $(seq 1 ${KIND_WORKER_COUNT}); do
-      echo "  - role: worker" >> /home/devops/kind-config.yaml
-    done
-  # -------------------------
-  # Install Docker
-  # -------------------------
-  - curl -fsSL https://get.docker.com | sh
-  - usermod -aG docker devops
-  - systemctl enable docker
-  - systemctl start docker
+      export DEBIAN_FRONTEND=noninteractive
 
-  # -------------------------
-  # Install kubectl
-  # -------------------------
-  - curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
-  - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      echo "📦 Installing Docker"
+      apt-get update -y
+      apt-get install -y docker.io
 
-  # -------------------------
-  # Install kind
-  # -------------------------
-  - curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
-  - chmod +x /usr/local/bin/kind
+      systemctl enable docker
+      systemctl start docker
 
-  # -------------------------
-  # Install Helm
-  # -------------------------
-  # - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      echo "⏳ Waiting for Docker to be ready"
+      until docker info >/dev/null 2>&1; do
+        sleep 2
+      done
 
-  # -------------------------
-  # Create kind cluster
-  # -------------------------
-  - |
-    su - devops -c "
-    kind create cluster --name platform-cluster
-    "
+      echo "👤 Adding devops user to docker group"
+      groupadd -f docker
+      usermod -aG docker devops
 
-  # -------------------------
-  # Install Argo CD
-  # -------------------------
-  # - |
-  #   su - devops -c "
-  #   kubectl create namespace argocd || true
-  #   kubectl apply -n argocd \
-  #     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-  #   "
+      echo "📦 Installing kubectl"
+      curl -fsSL "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+        -o /usr/local/bin/kubectl
+      chmod +x /usr/local/bin/kubectl
+
+      echo "📦 Installing helm"
+       - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      echo "📦 Installing kind"
+      curl -fsSL https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64 \
+        -o /usr/local/bin/kind
+      chmod +x /usr/local/bin/kind
+
+      echo "🚀 Creating kind cluster"
+      kind create cluster \
+        --name platform-cluster \
+        --config /home/devops/kind-config.yaml
+
 
 final_message: "Cloud-init bootstrap completed successfully"
