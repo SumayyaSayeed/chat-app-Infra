@@ -43,7 +43,9 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'init'
-              backendServiceArm: 'ado-terraform-oidc'
+              backendServiceArm: ''           # Can add storage remote backend if needed
+              backendAzureRmUseEnvironmentVariablesForAuthentication: true
+              backendType: 'local'            # state stored in local
           
           # Terraform Init
           # - task: TerraformCLI@0
