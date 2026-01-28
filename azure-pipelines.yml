@@ -43,9 +43,10 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'init'
-              backendServiceArm: ''           # Can add storage remote backend if needed
-              backendAzureRmUseEnvironmentVariablesForAuthentication: true
-              backendType: 'local'            # state stored in local
+              backendServiceArm: 'ado-terraform-oidc'
+              backendAzureRmStorageAccountName: 'terraformstate10032'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'chat-app-kindvm'
           
           # Terraform Init
           # - task: TerraformCLI@0
