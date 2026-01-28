@@ -12,18 +12,18 @@ variables:
 stages:
   - stage: Terraform
     jobs:
-      - job: DeployInfra
+      - job: Installdependenciesandtfplan
         steps:
-          # 1️⃣ Checkout code
+          #  Checkout code
           - checkout: self
 
-          # 2️⃣ Install Terraform
+          #  Install Terraform
           - task: TerraformInstaller@1
             displayName: Install Terraform
             inputs:
               terraformVersion: $(TF_VERSION)
 
-          # 2️⃣ Install Azure CLI if not present
+          #  Install Azure CLI if not present
           - task: Bash@3
             displayName: Install Azure CLI if missing
             inputs:
@@ -40,37 +40,52 @@ stages:
                   az version
                 fi
           - task: TerraformTask@5
+            displayName: terraform init
             inputs:
               provider: 'azurerm'
               command: 'init'
+              workingDirectory: '$(TF_WORKING_DIR)'
               backendServiceArm: 'ado-terraform-oidc'
               backendAzureRmStorageAccountName: 'terraformstate10032'
               backendAzureRmContainerName: 'tfstate'
               backendAzureRmKey: 'chat-app-kindvm'
-
           - task: TerraformTask@5
+            displayName: terraform validate
             inputs:
              provider: 'azurerm'
              command: 'validate'
              workingDirectory: '$(TF_WORKING_DIR)'
-
           - task: TerraformTask@5
+            displayName: terraform plan
             inputs:
               provider: 'azurerm'
               command: 'plan'
               workingDirectory: '$(TF_WORKING_DIR)'
               environmentServiceNameAzureRM: 'ado-terraform-oidc'
+          - task: TerraformTask@5
+            displayName: terraform apply
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '$(TF_WORKING_DIR)'
+              environmentServiceNameAzureRM: 'ado-terraform-oidc'
 
-          # # Terraform Apply (main branch only)
-          # - task: TerraformCLI@0
-          #   displayName: Terraform Apply
-          #   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-          #   inputs:
-          #     command: apply
-          #     workingDirectory: infra
-          #     args: "-auto-approve"
-          #   env:
-          #     ARM_USE_OIDC: $(ARM_USE_OIDC)
-          #     ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-          #     ARM_TENANT_ID: $(ARM_TENANT_ID)
-          #     ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+          
+  - stage: Destroy
+    displayName: Terraform Destroy (Manual Approval)
+    dependsOn: Terraform
+    jobs:
+      - deployment: DestroyInfra
+        displayName: Destroy Infra
+        environment: terraform-destroy 
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                  - checkout: self
+                  - task: TerraformTask@5
+                    inputs:
+                      provider: 'azurerm'
+                      command: 'destroy'
+                      workingDirectory: '$(TF_WORKING_DIR)'
+                      environmentServiceNameAzureRM: 'ado-terraform-oidc'
