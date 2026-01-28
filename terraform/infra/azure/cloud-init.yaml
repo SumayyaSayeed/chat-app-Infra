@@ -65,6 +65,11 @@ runcmd:
       kind create cluster \
         --name platform-cluster \
         --config /home/devops/kind-config.yaml
-
+      echo "✅ Kind cluster created"
+      kind export kubeconfig --name platform-cluster
+      echo " present dir:"
+      pwd
+      ls -la
+      whoami
 
 final_message: "Cloud-init bootstrap completed successfully"

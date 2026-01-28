@@ -69,6 +69,15 @@ stages:
               command: 'apply'
               workingDirectory: '$(TF_WORKING_DIR)'
               environmentServiceNameAzureRM: 'ado-terraform-oidc'
+          - task: Bash@3
+            displayName: K8scheck
+            inputs:
+              targetType: inline
+              script: |
+                set -x
+                kubectl config get-contexts
+                kubectl get nodes
+                kubecl get ns
 
           
   - stage: Destroy
